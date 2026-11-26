@@ -1,0 +1,87 @@
+#!/bin/sh
+# configure script for dicomr: find libjpeg (libjpeg-turbo or IJG libjpeg)
+# and zlib, then write src/Makevars from src/Makevars.in.
+#
+# The defaults can be overridden with environment variables, for example
+#   JPEG_CFLAGS="-I/opt/jpeg/include" JPEG_LIBS="-L/opt/jpeg/lib -ljpeg" \
+#     R CMD INSTALL dicomr
+# or, as a shorter form, INCLUDE_DIR and LIB_DIR.
+
+: ${R_HOME=`R RHOME`}
+if test -z "${R_HOME}"; then
+  echo "could not determine R_HOME"
+  exit 1
+fi
+RBIN="${R_HOME}/bin/R"
+CXX=`"${RBIN}" CMD config CXX`
+CXXFLAGS=`"${RBIN}" CMD config CXXFLAGS`
+CPPFLAGS=`"${RBIN}" CMD config CPPFLAGS`
+LDFLAGS=`"${RBIN}" CMD config LDFLAGS`
+
+if test -n "${JPEG_CFLAGS}${JPEG_LIBS}"; then
+  echo "* using JPEG_CFLAGS and JPEG_LIBS from the environment"
+  PKG_CPPFLAGS="${JPEG_CFLAGS}"
+  PKG_LIBS="${JPEG_LIBS} -lz"
+elif test -n "${INCLUDE_DIR}${LIB_DIR}"; then
+  echo "* using INCLUDE_DIR and LIB_DIR from the environment"
+  PKG_CPPFLAGS=""
+  PKG_LIBS="-ljpeg -lz"
+  if test -n "${INCLUDE_DIR}"; then PKG_CPPFLAGS="-I${INCLUDE_DIR}"; fi
+  if test -n "${LIB_DIR}"; then PKG_LIBS="-L${LIB_DIR} ${PKG_LIBS}"; fi
+elif pkg-config --version >/dev/null 2>&1 && pkg-config --exists libjpeg; then
+  echo "* found libjpeg with pkg-config (version `pkg-config --modversion libjpeg`)"
+  PKG_CPPFLAGS=`pkg-config --cflags libjpeg`
+  PKG_LIBS="`pkg-config --libs libjpeg` -lz"
+elif test "`uname`" = "Darwin" && \
+     test -f "`brew --prefix jpeg-turbo 2>/dev/null`/include/jpeglib.h"; then
+  BREW_JPEG=`brew --prefix jpeg-turbo`
+  echo "* using Homebrew jpeg-turbo in ${BREW_JPEG}"
+  PKG_CPPFLAGS="-I${BREW_JPEG}/include"
+  PKG_LIBS="-L${BREW_JPEG}/lib -ljpeg -lz"
+else
+  echo "* pkg-config did not find libjpeg; trying -ljpeg"
+  PKG_CPPFLAGS=""
+  PKG_LIBS="-ljpeg -lz"
+fi
+
+# Check that a program using libjpeg and zlib compiles and links.
+cat > conftest_dicomr.cpp <<'EOT'
+#include <cstdio>
+#include <jpeglib.h>
+#include <zlib.h>
+int main() {
+  struct jpeg_decompress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_decompress(&cinfo);
+  jpeg_destroy_decompress(&cinfo);
+  return zlibVersion() == 0;
+}
+EOT
+if ${CXX} ${CPPFLAGS} ${PKG_CPPFLAGS} ${CXXFLAGS} conftest_dicomr.cpp \
+     -o conftest_dicomr ${LDFLAGS} ${PKG_LIBS} >configure.log 2>&1; then
+  echo "* libjpeg and zlib: OK"
+  rm -f conftest_dicomr.cpp conftest_dicomr configure.log
+else
+  cat configure.log
+  rm -f conftest_dicomr.cpp conftest_dicomr configure.log
+  cat <<EOT
+---------------------------------------------------------------------
+ERROR: dicomr needs the libjpeg and zlib development files.
+
+Install them with:
+  deb (Debian, Ubuntu):         libjpeg-dev zlib1g-dev
+  rpm (Fedora, RHEL, CentOS):   libjpeg-turbo-devel zlib-devel
+  brew (macOS):                 jpeg-turbo
+  conda:                        libjpeg-turbo zlib
+
+If they are installed in a non-standard place, set JPEG_CFLAGS and
+JPEG_LIBS (or INCLUDE_DIR and LIB_DIR) and try again.
+---------------------------------------------------------------------
+EOT
+  exit 1
+fi
+
+sed -e "s|@PKG_CPPFLAGS@|${PKG_CPPFLAGS}|" -e "s|@PKG_LIBS@|${PKG_LIBS}|" \
+  src/Makevars.in > src/Makevars
+exit 0

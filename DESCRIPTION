@@ -1,0 +1,45 @@
+Package: dicomr
+Type: Package
+Title: Read, Write and Decode DICOM Medical Image Files
+Version: 0.1.0
+Authors@R: c(
+    person("Matt", "Segar", email = "cscswimmer227@gmail.com",
+           role = c("aut", "cre", "cph")),
+    person("Darcy", "Mason", role = c("ctb", "cph"),
+           comment = "author of 'pydicom', from which the DICOM data dictionary is derived"),
+    person("pydicom contributors", role = c("ctb", "cph"),
+           comment = "DICOM data dictionary derived from 'pydicom'")
+  )
+Description: A native reader and writer for DICOM (Digital Imaging and
+    Communications in Medicine) files, the standard format for medical
+    images, published by the National Electrical Manufacturers Association
+    <https://www.dicomstandard.org/current>. Modeled on the 'Python'
+    package 'pydicom' and checked against it. Parses the file format in
+    C++ (implicit and explicit value representations, both byte
+    orders, deflated data sets, nested sequences and encapsulated pixel
+    data), gives keyword and tag based access to data elements, writes
+    data sets back to disk, and decodes pixel data into R arrays:
+    uncompressed, RLE Lossless and JPEG Baseline (through 'libjpeg'), with
+    YBR to RGB color conversion. Includes helpers for cardiac and other
+    ultrasound, such as calibration from the Sequence of Ultrasound
+    Regions and frame timing for cine loops.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LinkingTo: Rcpp
+Imports: graphics, grDevices, Rcpp (>= 1.0.0), tools
+Suggests: jsonlite, testthat (>= 3.0.0)
+SystemRequirements: libjpeg (deb: libjpeg-dev, rpm:
+        libjpeg-turbo-devel, brew: jpeg-turbo), zlib (deb: zlib1g-dev,
+        rpm: zlib-devel)
+Config/testthat/edition: 3
+RoxygenNote: 7.3.1
+NeedsCompilation: yes
+Packaged: 2026-11-01 13:32:49 UTC; matt
+Author: Matt Segar [aut, cre, cph],
+  Darcy Mason [ctb, cph] (author of 'pydicom', from which the DICOM data
+    dictionary is derived),
+  pydicom contributors [ctb, cph] (DICOM data dictionary derived from
+    'pydicom')
+Maintainer: Matt Segar <cscswimmer227@gmail.com>
+Repository: CRAN
+Date/Publication: 2026-11-26 16:20:08 UTC

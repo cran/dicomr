@@ -1,0 +1,2 @@
+# Rtools (4.2 and later) ships static libjpeg-turbo and zlib.
+PKG_LIBS = -ljpeg -lz
